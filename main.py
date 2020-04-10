@@ -16,11 +16,13 @@ _VALVE_2_DPORT = 2
 _ALARM_DPORT = 3 # VISUAL ALARM PORT
 _MOTOR_DPORT = 4 #
 
+
 def switch_valves():
     valve_1 = board.digital[_VALVE_1_DPORT].read()
     valve_2 = board.digital[_VALVE_2_DPORT].read()
     board.digital[_VALVE_1_DPORT].write(1 if valve_1 == 0 else 0)
     board.digital[_VALVE_2_DPORT].write(1 if valve_2 == 0 else 0)
+
 
 def initial_settings():
     # valve 1 position closed, valve 2 position open
@@ -87,3 +89,5 @@ def breathe():
 initial_settings()
 while True:
     breathe()
+
+

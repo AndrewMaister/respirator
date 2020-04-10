@@ -1,1 +1,1 @@
-Project intended to create an artifitial respirator system
+Arduino respirator logic using python library
