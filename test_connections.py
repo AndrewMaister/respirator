@@ -36,8 +36,8 @@ def setup_arduino():
 
     iterator = util.Iterator(BOARD)
     iterator.start()
-
-    time.sleep(1)  # wait one second for Arduino to set up
+    print("Waiting three seconds for Arduino to set up")
+    time.sleep(3)  # wait one second for Arduino to set up
 
     P1 = BOARD.get_pin('d:{}:i'.format(_PRESSURE_1_DPORT))  # digital, pin number, input (read)
     P2 = BOARD.get_pin('d:{}:i'.format(_PRESSURE_2_DPORT))
