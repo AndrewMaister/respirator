@@ -23,10 +23,16 @@ _VALVE_3_2_DPORT = 8
 
 _MOTOR_DPORT = 13
 
-USB_SERIAL = "" # put the name of the usb serial connection (check your PCs control panel)
+def set_digital_outputs_to_zero(digital_outputs, motor):
+    print("Setting all digital outputs to zero on setup.. ")
+    for digital_output in digital_outputs:
+	pin = digital_output["pin"]
+        pin.write(0)
+    motor.write(0)
+	
 
 
-def setup_arduino():
+def setup_arduino(USB_SERIAL):
     try:
         BOARD = Arduino(USB_SERIAL)
     except Exception as e:
@@ -60,6 +66,7 @@ def setup_arduino():
 
     DIGITAL_INPUTS = [{"name": "Sensor 1", "pin": P1}, {"name": "Sensor 2", "pin": P2}, {"name": "Sensor 3", "pin": P3},
                       {"name": "Sensor 4", "pin": P4}]
+    set_digital_outputs_to_zero(DIGITAL_OUTPUTS, MOTOR)
     return [MOTOR, DIGITAL_OUTPUTS, DIGITAL_INPUTS, BOARD]
 
 
@@ -72,6 +79,8 @@ def test_digital_output_connection(pin, time_elapse, name):
 
 
 def test_digital_input_connection(pin, time_elapse, name):
+    print("Testing {} digital input read. Will wait 8 seconds for digital input estimulation.".format(name))
+    time.sleep(8)
     read = pin.read()
     print("{}: Digital input read: {}".format(name, read))
     time.sleep(time_elapse)
@@ -79,28 +88,10 @@ def test_digital_input_connection(pin, time_elapse, name):
 
 def run_valves_and_sensor_test(digital_inputs, digital_outputs):
     print("Always wait for the script to exit by itself to prevent malfunctioning..")
-
-    tests = 1
-    test_counter = 0
-    while test_counter <= tests:
-        test_counter += 1
-        print("TEST {}: Testing connections...".format(test_counter))
-
-        for digital_input in digital_inputs:
-            test_digital_input_connection(digital_input["pin"], 5, digital_input["name"])
-
-        for digital_output in digital_outputs:
-            time_elapse = 5
-            if "time_elapse" in digital_output:
-                time_elapse = digital_output["time_elapse"]
-            test_digital_output_connection(digital_output["pin"], time_elapse, digital_output["name"])
-        test_sleep = 8
-        if test_counter == tests:
-            print("Shutting down...")
-        else:
-            print("Will restart testing in {} seconds...".format(test_sleep))
-        time.sleep(test_sleep)
-
+    for digital_input in digital_inputs:
+        test_digital_input_connection(digital_input["pin"], 10, digital_input["name"])
+    for digital_output in digital_outputs:
+        test_digital_output_connection(digital_output["pin"], 10, digital_output["name"])
 
 
 def run_motor_test(time_elapse, motor):
@@ -117,23 +108,35 @@ def parse_args(args):
         action='store',
         type=str
     )
+    parser.add_argument(
+        '-usb',
+        '--usb-serial',
+        dest="usb",
+        help="The name of the USB serial",
+        action='store',
+        type=str
+    )
     return parser.parse_args(args)
 
 
 def main(args):
     args = parse_args(args)
     time_arg = args.time
-    time_arg = int(time_arg)
-    # MOTOR DOs DIs BOARD
-    pins_and_board = setup_arduino()
+    usb_serial = args.usb
+    if not usb_serial:
+        print("You have to insert usb serial name under the -usb tag")
+        exit()
+    # returns list(MOTOR, DOs, DIs, BOARD)
+    pins_and_board = setup_arduino(usb_serial)
     board = pins_and_board[3]
     if time_arg is None:
-        print("VALVES AND SENSORS TEST TEST")
+        print("VALVES AND SENSORS TEST")
         digital_inputs = pins_and_board[2]
         digital_outputs = pins_and_board[1]
         run_valves_and_sensor_test(digital_inputs, digital_outputs)
     else:
         print("MOTORS TEST")
+        time_arg = int(time_arg)
         motor = pins_and_board[0]
         run_motor_test(time, motor)
     print("Exiting board.. you can plug out now..")
