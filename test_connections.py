@@ -79,29 +79,46 @@ def setup_arduino(USB_SERIAL):
 
 
 def test_digital_output_connection(pin, time_elapse, name):
-    print("{}: Digital output testing write 1 for {} seconds".format(name, time_elapse))
+    print("DIGITAL OUTPUT[{}]: Digital output testing write 1".format(name))
     pin.write(1)
-    time.sleep(time_elapse)
+    go_to_sleep_for(time_elapse)
     print("Digital output testing end, write 0.".format(time_elapse))
     pin.write(0)
 
 
+def read_digital_input(name, read):
+    print("DIGITAL INPUT [{}]: Digital input read: {}".format(name, read))
+
+
 def test_digital_input_connection(pin, time_elapse, name):
-    print("Testing {} digital input read. Will wait 8 seconds for digital input trigger.".format(name))
-    time.sleep(8)
-    read = pin.read()
-    print("{}: Digital input read: {}".format(name, read))
-    time.sleep(time_elapse)
+    print("Testing {} digital input read. Will wait {} seconds for digital input trigger.".format(name, time_elapse))
+    for counter in range(10):
+        print (10 - counter)
+        time.sleep(1)
+    for i in range(15):
+        read = pin.read()
+        print("DIGITAL INPUT [{}]: Digital input read: {}".format(name, read))
+        print("Variable type: " + type(read))
+        time.sleep(0.3)
 
 
 def run_valves_and_sensor_test(digital_inputs, digital_outputs):
     print("Always wait for the script to exit by itself to prevent malfunctioning..")
-    print("TESTING DIGITAL INPUTS: ")
+    go_to_sleep_for(10)
+    print("INITIATING DIGITAL INPUTS TEST in 3 seconds: ")
+    go_to_sleep_for(3)
+    print("Checking digital inputs default values")
+    for digital_input in digital_inputs:
+        go_to_sleep_for(10)
+        read_digital_input(digital_input["name"], digital_input["pin"].read())
+    print("Initiate triggering of inputs..")
+    go_to_sleep_for(3)
     for digital_input in digital_inputs:
         test_digital_input_connection(digital_input["pin"], 10, digital_input["name"])
-    print("TESTING DIGITAL OUTPUTS: ")
+    print("TESTING DIGITAL OUTPUTS in 3 seconds: ")
+    go_to_sleep_for(3)
     for digital_output in digital_outputs:
-        test_digital_output_connection(digital_output["pin"], 10, digital_output["name"])
+        test_digital_output_connection(digital_output["pin"], 5, digital_output["name"])
 
 
 def go_to_sleep_for(seconds):
@@ -123,6 +140,7 @@ def run_motor_test(motor, valve_controller):
     print("Will turn on motor in..")
     for counter in range(3):
         print (3 - counter)
+        time.sleep(1)
     motor.write(1)
     print("Motor turned on..")
     go_to_sleep_for(5)
@@ -175,7 +193,7 @@ def main(args):
         digital_outputs = pins_and_board[1]
         run_valves_and_sensor_test(digital_inputs, digital_outputs)
     else:
-        print("MOTORS TEST")
+        print("MOTOR TEST")
         motor = pins_and_board[0]
         valve_controller = pins_and_board[4]
         run_motor_test(motor, valve_controller)
@@ -189,6 +207,3 @@ def run():
 
 if __name__ == "__main__":
     run()
-
-
-
