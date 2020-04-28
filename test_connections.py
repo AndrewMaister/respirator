@@ -43,11 +43,6 @@ def setup_arduino(USB_SERIAL):
         print e
         exit()
 
-    iterator = util.Iterator(BOARD)
-    iterator.start()
-    print("Waiting three seconds for Arduino to set up")
-    time.sleep(3)  # wait one second for Arduino to set up
-
     P1 = BOARD.get_pin('d:{}:i'.format(_PRESSURE_1_DPORT))  # digital, pin number, input (read)
     P2 = BOARD.get_pin('d:{}:i'.format(_PRESSURE_2_DPORT))
     P3 = BOARD.get_pin('d:{}:i'.format(_PRESSURE_3_DPORT))
@@ -75,6 +70,10 @@ def setup_arduino(USB_SERIAL):
     DIGITAL_INPUTS = [{"name": "Sensor 1", "pin": P1}, {"name": "Sensor 2", "pin": P2}, {"name": "Sensor 3", "pin": P3},
                       {"name": "Sensor 4", "pin": P4}]
     set_digital_outputs_to_zero(DIGITAL_OUTPUTS, MOTOR)
+    print("All digital outputs set to zero.. ")
+    go_to_sleep_for(10)
+    iterator = util.Iterator(BOARD)
+    iterator.start()
     return [MOTOR, DIGITAL_OUTPUTS, DIGITAL_INPUTS, BOARD, VALVE_CONTROLLER]
 
 
