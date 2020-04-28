@@ -180,6 +180,7 @@ def parse_args(args):
 def main(args):
     args = parse_args(args)
     is_motor_test = args.is_motor_test
+    print is_motor_test
     usb_serial = args.usb
     if not usb_serial:
         print("You have to insert usb serial name under the -usb tag")
@@ -187,7 +188,7 @@ def main(args):
     # returns list(MOTOR, DOs, DIs, BOARD, VALVE_CONTROLLER)
     pins_and_board = setup_arduino(usb_serial)
     board = pins_and_board[3]
-    if is_motor_test is None:
+    if not is_motor_test:
         print("VALVES AND SENSORS TEST")
         digital_inputs = pins_and_board[2]
         digital_outputs = pins_and_board[1]
