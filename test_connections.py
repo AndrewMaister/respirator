@@ -63,7 +63,7 @@ def setup_arduino(USB_SERIAL):
                        {"name": "Valve 3.2", "pin": V3_2}]
     VALVE_CONTROLLER = {"1.1": V1_1,
                        "1.2": V1_2,
-                       "2":V2,
+                       "2": V2,
                        "3.1": V3_1,
                        "3.2": V3_2}
 
