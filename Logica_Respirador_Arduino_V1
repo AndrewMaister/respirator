@@ -1,0 +1,190 @@
+//designo un numero de pin a cada elemento del respirador y los declaro como variables numericas
+
+int pin_switch_ONOFF = 2;      //Este boton esta en el protoboard. Cuando esta prendido enciende led verde y energiza algun pin que yo quiera. Cuando esta apagado prende led rojo
+int pin_led_verde= 3;          //Este led verde esta en el protoboard. Indica que el pin energizador estara con voltaje/energizado
+int pin_led_rojo= 4;           //Este led rojo esta en el protoboard. Indica que el pin energizador estara sin voltaje
+int estado_switch_ONOFF;
+
+
+int valorsensor_1= 0;
+int valorsensor_2= 0;
+int valorsensor_3= 0;
+
+//voy a declarar estos flags booleanos para avisar en algun lado si estamos en fase de inspiracion o expiracion
+bool inspiracion;   
+bool expiracion;
+
+
+int pin_motor = 13;            //Este pin enciende el motor soplador de aire
+
+int pin_valvula_1A = 12;       //Esta valvula es la que comunica la salida del soplador de aire con el tubo que va al paciente
+int pin_valvula_1B = 11;       //Esta valvula es la que comunica la salida del soplador de aire con el tubo de escape (valvula de alivio)
+
+int pin_valvula_3A = 10;       //Esta valvula es la que comunica el tubo de exalacion del paciente con la entrada al motor aspirador/soplador
+int pin_valvula_3B = 9;        //Esta valvula es la que comunica la entrada del motor aspirador/soplador a la toma de aire externa (no del paciente)
+
+int pin_valvula_2 = 8;         //Esta valvula es la que esta en el medio del tubo de inspiracion, luego de los sensores 1 y 2, y antes del humidificador
+                               //Esta valvula sirve para acumular presion minima necesaria antes de enviarsela al paciente a travez del humidificador
+
+int pin_sensorpresion_1 = 5;   //Este sensor de presion monitorea la presion maxima de aire antes de enviarsela al paciente
+                               //Es Normally Closed...En 0 hasta que P > 30cm de H20. If P > 30 --> enciende led S1, cierra V2, abre V1B. 
+int pin_sensorpresion_2 = 6;   //Este sensor de presion monitorea la presion minima de aire antes de enviarsela al paciente
+                               //Es Normally Opened...En 1 mientras que P > 5cm de H20. If P < 5 --> enciende led S2, cierra V2 por X segundos, inicia timer 
+int pin_sensorpresion_3 = 7;   //Este sensor de presion monitorea la presion de aire en la boca del paciente. Es el que activa la inhalacion.
+                               //Es Normally Closed...En 0 hasta que P > 10cm de H20. If P > 10 --> enciende led S3, abre V1A, cierra V1B, abre V3B, cierra V3A, enciende motor, inicia timer 
+//int pin_sensorpresion_4 = XX;   //Este sensor de presion monitorea la presion minima de aire en el tubo de exalacion (asegura PEEP en tubo excalacion).
+                                  //Es Normally Closed...Es 0 hasta que P < 5cm de H20. If P < 5 -->  enciende led S4, cierra V3A por X segunds, inicia timer
+                                  //Me falta agregarle la logica a este sensor...va como regulador del proceso de expiracion
+//.............................................................................................................
+//defino el rol de cada pin. (Input pullup quiere decir impedancia infinita, sirve para botones).
+
+void setup() {
+  pinMode(pin_switch_ONOFF, INPUT_PULLUP);
+  pinMode(pin_led_rojo, OUTPUT);
+  pinMode(pin_led_verde, OUTPUT);
+  
+  pinMode(pin_motor, OUTPUT);
+   
+  pinMode(pin_valvula_1A, OUTPUT); 
+  pinMode(pin_valvula_1B, OUTPUT);
+  pinMode(pin_valvula_3A, OUTPUT);
+  pinMode(pin_valvula_3B, OUTPUT);
+  pinMode(pin_valvula_2, OUTPUT);
+
+  pinMode(pin_sensorpresion_1,INPUT); 
+  pinMode(pin_sensorpresion_2,INPUT); 
+  pinMode(pin_sensorpresion_3,INPUT); 
+//  pinMode(pin_sensorpresion_4,OUTPUT); 
+
+
+}
+
+//.............................................................................................................
+//defino la logica del codigo.
+void loop() {
+
+//Despues, quiero que solo me ponga 12 volts en el pin que este probando, tambien marcandome en un led verde que se esta energizando, cuando aprete un switch a ON.
+//De lo contrario, quiero que si esta en OFF, el led verde este apagado, el pin de prueba este en 0 volts, y el led rojo este prendido.
+
+//La logica es que si el switch esta off, hay un HIGH por ser Input pullup, pero lo invierto con el "!" 
+//Por ende si esta en OFF, el estado del switch es LOW
+//Si el estado del switch es LOW, (osea apagado), el led rojo se energiza, y el verde no. Si el switch esta ON, el led verde se energiza, el led rojo no.
+//Junto con el led verde, voy a energizar todos los pines que quiera probar. El resto de los pines deberian estar en LOW por default.
+
+  int estado_switch_ONOFF= !digitalRead(pin_switch_ONOFF); //"!" quiere decir la inversa... Cuando uso INPUT_PULLUP, lee un HIGH si no hay voltaje. Poreso lo invierto aca.
+
+//si el boton de la protoboard esta en "OFF", se enciende solo el led rojo, y todos los pines estan sin voltaje. 
+//Comprobado que es asi.
+
+  if (estado_switch_ONOFF == LOW){ 
+
+      digitalWrite(pin_led_rojo, HIGH);
+      digitalWrite(pin_led_verde, LOW);
+  
+      digitalWrite(pin_motor,LOW);
+      
+      digitalWrite(pin_valvula_1A,LOW);
+      digitalWrite(pin_valvula_1B,LOW);
+      digitalWrite(pin_valvula_3A,LOW);
+      digitalWrite(pin_valvula_3B,LOW);
+      digitalWrite(pin_valvula_2,LOW);
+
+      digitalWrite(pin_sensorpresion_1,!LOW); 
+      digitalWrite(pin_sensorpresion_2,!LOW);
+      digitalWrite(pin_sensorpresion_3,!LOW);
+
+  }
+  
+//al poner el switch de start en "ON" ,se enciende solo el led verde, y se enegrizan los pines que yo le diga (con 5V los sensores, el resto 12V). 
+//los sensores les pongo el "!" (NOT) porque, por como esta puesto el circuito, si estan el LOW, hay voltaje. Entonces todo inverso con ellos.
+//Comprobado que es asi.
+  
+  else if (estado_switch_ONOFF == HIGH)  //el doble signo = checkea en lugar de asignar. && es AND
+  {    
+      digitalWrite(pin_led_rojo, LOW);
+      digitalWrite(pin_led_verde, HIGH);
+
+      while (estado_switch_ONOFF == HIGH)
+      {     //capturo lo que hay en cada sensor en una variable
+            valorsensor_1=digitalRead(pin_sensorpresion_1);       
+            //SENSOR 1 - Este sensor de presion monitorea la presion maxima de aire antes de enviarsela al paciente
+            //Es Normally Closed...En 0 hasta que P > 30cm de H20. If P > 30 (osea sensor cambia de estado...cierra switch) --> enciende led S1, cierra V2, abre V1B. 
+            valorsensor_2=digitalRead(pin_sensorpresion_2);
+            //SENSOR 2 - Este sensor de presion monitorea la presion minima de aire antes de enviarsela al paciente
+            //Es Normally Opened...En 1 mientras que P > 5cm de H20. If P < 5 --> enciende led S2, cierra V2 por X segundos, inicia timer 
+            valorsensor_3=digitalRead(pin_sensorpresion_3);
+            //SENSOR 3 - Este sensor de presion monitorea la presion de aire en la boca del paciente. Es el que activa la inhalacion.
+            //Es Normally Closed...En 0 hasta que P > 10cm de H20. If P > 10 --> enciende led S3, abre V1A, cierra V1B, abre V3B, cierra V3A, enciende motor, inicia timer 
+            int i;
+
+            // si el sensor 3, que esta al lado de la boca del paciente, detecta un cambio de presion, inicio el proceso de acumular presion de aire en la primer seccion del tubo de inhalacion
+            if (valorsensor_3 == !valorsensor_3 && i < 1)
+                {
+                  int i=i+1;  //Aseguro que no vuelva a entrar en exactamente esto si vuelve a cambiar el estado del sensor 3
+                  digitalWrite(pin_sensorpresion_3,!HIGH); //Se prende el led asi veo que se activo
+
+                  // siempre y cuando la seccion de inspiracion inicial este en menos de la presion maxima, voy a acumular presion en este sector previo a mandarselo al paciente
+                  while (valorsensor_2 == valorsensor_2)  //Mientras que el sensor 2 no detecte una presion max alcansada en la seccion de tubo previa al humidificador
+                    {
+                      digitalWrite(pin_valvula_1A,HIGH); //Se abre la valvula 1A permitiendo aire del motor a primer seccion tubo inhalacion
+                      digitalWrite(pin_valvula_1B,LOW); //Se cierra la valvula 1B cerrando valvula de escape
+                      digitalWrite(pin_valvula_3A,LOW); //Se cierra la valvula 3A cerrando entrada de aire de inhalacion
+                      digitalWrite(pin_valvula_3B,HIGH); //Se abre la valvula 3B habilitando toma de aire del exterior a boca del motor
+                      digitalWrite(pin_motor,HIGH); //Se enciende el motor...Presion en esta seccion ira en aumento hasta que sensor 2 llegue al pico
+                      
+                    } //cierro while
+                  
+                  unsigned long starttime_inhal = millis();  //arranca un timer
+                  unsigned long endtime_inhal = starttime_inhal;
+
+                    // una vez que se alcanso esta presion y el valor del sensor 2 cambia porque salta el switch del sensor, quiero que mande el aire al paciente
+                    if (valorsensor_2 =! valorsensor_2 && i < 1) 
+                    {
+                      inspiracion = true; //arranco el proceso de inspiracion
+                      int i=i+1 ; //Aseguro que no vuelva a entrar en exactamente esto si vuelve a cambiar el estado del sensor 3
+                      digitalWrite(pin_sensorpresion_3,!HIGH); //Se prende el led asi veo que se activo
+
+                      if (inspiracion == true){
+                        while ((endtime_inhal - starttime_inhal) <=4000) // quiero que habilite el paso de aire a presion al paciente por 4 segundos
+                          {   
+                              digitalWrite(pin_valvula_1A,HIGH); //Se mantiene la valvula 1A permitiendo aire del motor a primer seccion tubo inhalacion
+                              digitalWrite(pin_valvula_3B,HIGH); //Se mantiene la valvula 3B habilitando toma de aire del exterior a boca del motor
+                              digitalWrite(pin_motor,HIGH); //Se mantiene encendido el motor
+                              digitalWrite(pin_valvula_2, HIGH); //Se abre valvula 2 permitiendo el aire al humidificador y luego al paciente
+                              endtime_inhal = millis();
+  
+                              inspiracion = false; //termino el proceso de inspiracion
+                              expiracion = true; //habilito inicio proceso de expiracion
+                            
+                          } //cierro while
+                      } //cierro if
+                    } //cierro if
+
+                    //En este punto, el paciente ya inspiro por 4 segundos. Ahora tiene que iniciar la fase de expiracion
+                    //Ahora el motor succiona el aire del paciente y lo tira al exterior, gracias a la disposicion de las valvulas
+
+                    if (expiracion == true && inspiracion == false) {
+                        unsigned long starttime_exal = millis();  //arranca un timer
+                        unsigned long endtime_exal = starttime_exal;
+                        while ((endtime_exal - starttime_exal) <=3000) // quiero que la expiracion dure 3 segundos
+                          {   
+                              digitalWrite(pin_valvula_3A, HIGH); 
+                              digitalWrite(pin_valvula_3B, LOW);  //quiero que el motor tome el aire del tubo de inspiracion, favoreciendo la inspiracion, y que deje de tomarlo de la toma de aire   
+                              digitalWrite(pin_valvula_1A, LOW);
+                              digitalWrite(pin_valvula_1B, HIGH); //quiero que mande el aire que inspiro al exterior, no que lo recircule     
+                              digitalWrite(pin_valvula_2, LOW); //quiero que no haya reflujo de aire hacia el tubo de inspiracion, y que asi todo el aire salga por el tubo de expiracion
+                              digitalWrite(pin_motor, HIGH); //por las dudas...el motor siempre sigue prendido, solo que toma aire de distintos lados 
+                              endtime_exal = millis();
+                            
+                          } //cierro while
+
+                            expiracion = false; //termino proceso de expiracion
+                            inspiracion = true; //habilito inicio proceso de inspiracion
+                                                                                                 
+                    } //cierro if
+                  
+                 } //cierro if
+
+      } //cierro el while
+  } //cierro else if   
+} //Cierro el void loop
